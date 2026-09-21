@@ -2,7 +2,7 @@
 
 A minimal Windows 10/11 chat overlay for single-monitor streamers. YouTube and Kick are the primary platforms; Twitch is also supported by adapter code. React + TypeScript + Tailwind CSS + Tauri 2.
 
-**0.1.0 development build. Windows CI and installer install/startup/shutdown/uninstall checks pass. Authentication and live adapters are implemented, but publisher OAuth configuration, Kick deployment and real-account end-to-end tests remain required. A source ZIP is not an installer.**
+**0.1.1 development build. Overlay startup, shortcut recovery and geometry persistence were revised after an installed 0.1.0 user reported failures. Authentication and live adapters require publisher OAuth configuration, Kick deployment and real-account end-to-end tests. A source ZIP is not an installer.**
 
 ## What is implemented
 
@@ -52,7 +52,7 @@ NSIS output: `src-tauri/target/release/bundle/nsis/`. The included GitHub Action
 
 ## Overlay and OBS
 
-Open the overlay from the dashboard. Alt+Shift+O toggles visibility; Alt+Shift+L toggles click-through. Open the overlay once before using those shortcuts. If another app occupies a shortcut, ChatNinja shows a warning and the dashboard controls remain available. Drag its header or bottom-right grip when unlocked. Numeric geometry persists; dragged geometry is session-only. Closing the dashboard exits the app, overlay and chat workers; there is no tray lifecycle yet.
+The overlay opens at startup unless you previously hid it. Alt+Shift+O toggles visibility (and can create a missing overlay); Alt+Shift+L toggles click-through. If another app occupies a shortcut, ChatNinja shows a warning and the dashboard controls remain available. Drag its header or bottom-right grip when unlocked. Position and size are saved after dragging; the dashboard also has width/height sliders and a **Reset and show overlay** recovery button. Closing the dashboard exits the app, overlay and chat workers; there is no tray lifecycle yet.
 
 Choose OBS only or Desktop + OBS and copy the local URL into OBS → Sources → Browser. The server uses loopback, a random port and a random session token. The URL changes each app launch. Streamer-only mode clears OBS messages.
 

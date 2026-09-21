@@ -51,6 +51,6 @@ Kick uses a separate HTTPS service because official chat events arrive as webhoo
 
 ## Known product limits
 
-Full emote-provider catalogues, stable OBS identity, tray lifecycle, persisted drag geometry and configurable hotkeys are unfinished. Occupied global shortcuts produce a dashboard warning; dashboard show/hide/click-through controls remain available. Closing the dashboard terminates the app and its workers. Local Linux Tauri host compilation stopped at missing GTK/pkg-config prerequisites; use the Windows workflow and verification record for native build status. No signing key or code-signing certificate is bundled.
+Full emote-provider catalogues, stable OBS identity, tray lifecycle and configurable hotkeys are unfinished. Overlay move/resize events now update saved geometry, and missing overlays can be opened by the show shortcut or a recovery button. Occupied global shortcuts produce a dashboard warning. Closing the dashboard terminates the app and its workers. Local Linux Tauri host compilation stopped at missing GTK/pkg-config prerequisites; use the Windows workflow and verification record for native build status. No signing key or code-signing certificate is bundled.
 
 Official references and publisher setup are recorded in [PROVIDER-SETUP.md](PROVIDER-SETUP.md).

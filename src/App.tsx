@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   defaults,
   loadSettings,
+  overlayWanted,
+  saveOverlayWanted,
   STORAGE_KEY,
   type Platform,
   type Settings,
@@ -43,6 +45,7 @@ function Toggle({
   );
 }
 export function App() {
+  const bootStarted = useRef(false);
   const [settings, setSettings] = useState(loadSettings);
   const [tab, setTab] = useState<Tab>("overlay");
   const [messages, setMessages] = useState<ChatMessage[]>(
@@ -54,6 +57,34 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const t = dictionary[settings.language];
   const displayedMessages = settings.demo ? messages : liveMessages;
+  useEffect(() => {
+    if (!native || bootStarted.current) return;
+    bootStarted.current = true;
+    // Restore the overlay after a relaunch, including existing 0.1.0 installs.
+    void syncSnapshot({ settings, messages })
+      .then(() => {
+        if (settings.visibility !== "obs" && overlayWanted())
+          return controlOverlay("show", settings);
+      })
+      .catch((reason) => setError(`Overlay startup failed: ${String(reason)}`));
+  }, []);
+  useEffect(() => {
+    if (!native) return;
+    const events = [
+      listen<Partial<Pick<Settings, "width" | "height" | "x" | "y">>>(
+        "overlay-geometry",
+        ({ payload }) =>
+          setSettings((previous) => ({ ...previous, ...payload })),
+      ),
+      listen<boolean>("overlay-visibility", ({ payload }) =>
+        saveOverlayWanted(payload),
+      ),
+      listen<string>("overlay-failure", ({ payload }) => setError(payload)),
+    ];
+    return () => {
+      events.forEach((event) => void event.then((stop) => stop()));
+    };
+  }, []);
   useEffect(() => {
     if (!native) return;
     void getStartupWarnings()
@@ -125,11 +156,30 @@ export function App() {
   async function action(kind: "show" | "hide" | "apply") {
     try {
       await controlOverlay(kind, settings);
+      if (kind !== "apply") saveOverlayWanted(kind === "show");
       setError("");
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Overlay action failed",
-      );
+      setError(`Overlay action failed: ${String(error)}`);
+    }
+  }
+  async function recoverOverlay() {
+    const recovered: Settings = {
+      ...settings,
+      visibility: "streamer",
+      clickThrough: false,
+      width: defaults.width,
+      height: defaults.height,
+      x: defaults.x,
+      y: defaults.y,
+    };
+    setSettings(recovered);
+    try {
+      await syncSnapshot({ settings: recovered, messages });
+      await controlOverlay("show", recovered);
+      saveOverlayWanted(true);
+      setError("");
+    } catch (error) {
+      setError(`Overlay recovery failed: ${String(error)}`);
     }
   }
   function platformToggle(platform: Platform, enabled: boolean) {
@@ -141,7 +191,7 @@ export function App() {
     );
   }
   const range = (
-    key: "fontSize" | "opacity",
+    key: "fontSize" | "opacity" | "width" | "height",
     label: string,
     min: number,
     max: number,
@@ -300,14 +350,14 @@ export function App() {
                             value={settings[key]}
                             min={
                               key === "width"
-                                ? 240
+                                ? 160
                                 : key === "height"
-                                  ? 180
+                                  ? 100
                                   : -32000
                             }
                             max={
                               key === "width"
-                                ? 1200
+                                ? 1600
                                 : key === "height"
                                   ? 1600
                                   : 32000
@@ -324,12 +374,21 @@ export function App() {
                         </label>
                       ))}
                     </div>
+                    {range("width", t.width, 160, 1600, 10)}
+                    {range("height", t.height, 100, 1600, 10)}
                     <button
                       className="secondary wide"
                       disabled={!native}
                       onClick={() => void action("apply")}
                     >
                       {t.apply}
+                    </button>
+                    <button
+                      className="secondary wide"
+                      disabled={!native}
+                      onClick={() => void recoverOverlay()}
+                    >
+                      {t.recover}
                     </button>
                     <Toggle
                       label={t.clickThrough}

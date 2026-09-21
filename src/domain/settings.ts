@@ -7,8 +7,8 @@ export const settingsSchema = z.object({
   language: z.enum(["mn", "en"]),
   fontSize: z.number().int().min(12).max(32),
   opacity: z.number().min(0).max(1),
-  width: z.number().int().min(240).max(1200),
-  height: z.number().int().min(180).max(1600),
+  width: z.number().int().min(160).max(1600),
+  height: z.number().int().min(100).max(1600),
   x: z.number().int().min(-32000).max(32000),
   y: z.number().int().min(-32000).max(32000),
   visibility: z.enum(["streamer", "obs", "both"]),
@@ -44,6 +44,21 @@ export function parseSettings(value: unknown): Settings {
   return result.success ? result.data : { ...defaults };
 }
 export const STORAGE_KEY = "chatninja.settings.v1";
+export const OVERLAY_VISIBILITY_KEY = "chatninja.overlay.visible.v1";
+export function overlayWanted(): boolean {
+  try {
+    return localStorage.getItem(OVERLAY_VISIBILITY_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+export function saveOverlayWanted(visible: boolean): void {
+  try {
+    localStorage.setItem(OVERLAY_VISIBILITY_KEY, String(visible));
+  } catch {
+    // Window state remains usable for the current session.
+  }
+}
 export function loadSettings(): Settings {
   try {
     return parseSettings(

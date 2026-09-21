@@ -56,8 +56,8 @@ impl Settings {
             || !(12..=32).contains(&self.font_size)
             || !self.opacity.is_finite()
             || !(0.0..=1.0).contains(&self.opacity)
-            || !(240..=1200).contains(&self.width)
-            || !(180..=1600).contains(&self.height)
+            || !(160..=1600).contains(&self.width)
+            || !(100..=1600).contains(&self.height)
             || !(-32000..=32000).contains(&self.x)
             || !(-32000..=32000).contains(&self.y)
             || !["streamer", "obs", "both"].contains(&self.visibility.as_str())
@@ -119,13 +119,10 @@ fn set_snapshot(
         return Err("Message buffer exceeded".into());
     }
     if let Some(window) = app.get_webview_window("overlay") {
-        window
-            .set_ignore_cursor_events(snapshot.settings.click_through)
-            .map_err(|e| e.to_string())?;
-        // Best effort on Windows; never claim guaranteed invisibility to capture.
-        window
-            .set_content_protected(snapshot.settings.visibility == "streamer")
-            .map_err(|e| e.to_string())?;
+        // Window manager and capture APIs can differ by Windows version. A failure
+        // here must not discard validated chat state or prevent overlay display.
+        let _ = window.set_ignore_cursor_events(snapshot.settings.click_through);
+        let _ = window.set_content_protected(snapshot.settings.visibility == "streamer");
         if snapshot.settings.visibility == "obs" {
             window.hide().map_err(|e| e.to_string())?;
         }
@@ -160,6 +157,7 @@ fn control_overlay(
         if let Some(window) = app.get_webview_window("overlay") {
             window.hide().map_err(|e| e.to_string())?;
         }
+        let _ = app.emit_to("main", "overlay-visibility", false);
         return Ok(());
     }
     if action == "show" && settings.visibility == "obs" {
@@ -180,27 +178,51 @@ fn control_overlay(
         .shadow(false)
         .visible(false)
         .inner_size(settings.width as f64, settings.height as f64)
-        .min_inner_size(240.0, 180.0)
-        .max_inner_size(1200.0, 1600.0)
+        .min_inner_size(160.0, 100.0)
+        .max_inner_size(1600.0, 1600.0)
         .build()
         .map_err(|e| e.to_string())?,
     };
     window
         .set_size(tauri::LogicalSize::new(settings.width, settings.height))
         .map_err(|e| e.to_string())?;
+    let (x, y) = visible_position(&app, &settings);
     window
-        .set_position(tauri::LogicalPosition::new(settings.x, settings.y))
-        .map_err(|e| e.to_string())?;
-    window
-        .set_ignore_cursor_events(settings.click_through)
-        .map_err(|e| e.to_string())?;
-    window
-        .set_content_protected(settings.visibility == "streamer")
+        .set_position(tauri::LogicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
     if action == "show" {
         window.show().map_err(|e| e.to_string())?;
+        let _ = app.emit_to("main", "overlay-visibility", true);
     }
+    let _ = window.set_ignore_cursor_events(settings.click_through);
+    // Capture exclusion is optional and must not block the overlay from opening.
+    let _ = window.set_content_protected(settings.visibility == "streamer");
     Ok(())
+}
+
+fn visible_position(app: &tauri::AppHandle, settings: &Settings) -> (i32, i32) {
+    if let Ok(monitors) = app.available_monitors() {
+        let intersects = monitors.iter().any(|monitor| {
+            let scale = monitor.scale_factor();
+            let corner = monitor.position().to_logical::<i32>(scale);
+            let size = monitor.size().to_logical::<u32>(scale);
+            settings.x < corner.x.saturating_add(size.width as i32 - 48)
+                && settings.x.saturating_add(settings.width as i32) > corner.x + 48
+                && settings.y < corner.y.saturating_add(size.height as i32 - 32)
+                && settings.y.saturating_add(settings.height as i32) > corner.y + 32
+        });
+        if intersects {
+            return (settings.x, settings.y);
+        }
+    }
+    let anchor = app
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .map(|monitor| monitor.position().to_logical::<i32>(monitor.scale_factor()));
+    anchor
+        .map(|position| (position.x + 40, position.y + 80))
+        .unwrap_or((40, 80))
 }
 
 async fn obs_snapshot(HttpState(shared): HttpState<Shared>) -> Json<Snapshot> {
@@ -223,28 +245,47 @@ fn main() {
                     if event.state() != ShortcutState::Pressed {
                         return;
                     }
-                    if let Some(window) = app.get_webview_window("overlay") {
-                        if shortcut == &show {
-                            let state = app.state::<AppState>();
-                            if let Ok(snapshot) = state.snapshot.lock() {
-                                if snapshot.settings.visibility == "obs" {
-                                    return;
-                                }
+                    let state = app.state::<AppState>();
+                    let settings = match state.snapshot.lock() {
+                        Ok(snapshot) => snapshot.settings.clone(),
+                        Err(_) => return,
+                    };
+                    if settings.visibility == "obs" {
+                        return;
+                    }
+                    if shortcut == &show {
+                        let visible = app
+                            .get_webview_window("overlay")
+                            .and_then(|window| window.is_visible().ok())
+                            .unwrap_or(false);
+                        let action = if visible { "hide" } else { "show" };
+                        if let Err(error) = control_overlay(app.clone(), action.into(), settings) {
+                            let _ = app.emit_to("main", "overlay-failure", error);
+                        }
+                    } else if shortcut == &lock {
+                        if app.get_webview_window("overlay").is_none() {
+                            if let Err(error) =
+                                control_overlay(app.clone(), "show".into(), settings)
+                            {
+                                let _ = app.emit_to("main", "overlay-failure", error);
+                                return;
                             }
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                            }
-                        } else if shortcut == &lock {
+                        }
+                        if let Some(window) = app.get_webview_window("overlay") {
                             let state = app.state::<AppState>();
                             if let Ok(mut snapshot) = state.snapshot.lock() {
                                 let next = !snapshot.settings.click_through;
-                                if window.set_ignore_cursor_events(next).is_ok() {
+                                if let Err(error) = window.set_ignore_cursor_events(next) {
+                                    let _ = app.emit_to(
+                                        "main",
+                                        "overlay-failure",
+                                        error.to_string(),
+                                    );
+                                } else {
                                     snapshot.settings.click_through = next;
                                     let _ = app.emit_to("main", "overlay-lock", next);
                                 }
-                            };
+                            }
                         }
                     }
                 })
@@ -301,6 +342,28 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            if window.label() == "overlay" {
+                let scale = window.scale_factor().unwrap_or(1.0);
+                match event {
+                    tauri::WindowEvent::Moved(position) => {
+                        let logical = position.to_logical::<i32>(scale);
+                        let _ = window.app_handle().emit_to(
+                            "main",
+                            "overlay-geometry",
+                            serde_json::json!({"x":logical.x,"y":logical.y}),
+                        );
+                    }
+                    tauri::WindowEvent::Resized(size) => {
+                        let logical = size.to_logical::<u32>(scale);
+                        let _ = window.app_handle().emit_to(
+                            "main",
+                            "overlay-geometry",
+                            serde_json::json!({"width":logical.width.clamp(160,1600),"height":logical.height.clamp(100,1600)}),
+                        );
+                    }
+                    _ => {}
+                }
+            }
             // There is no tray lifecycle yet. Closing the dashboard must also stop
             // the overlay, private OBS server and provider workers.
             if window.label() == "main"
