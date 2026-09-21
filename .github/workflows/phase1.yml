@@ -22,10 +22,10 @@ jobs:
             crates/jutsu-config -> target
       - run: npm ci
       - run: npm run check
-      - run: cargo test --manifest-path crates/jutsu-config/Cargo.toml
+      - run: cargo test --locked --manifest-path crates/jutsu-config/Cargo.toml
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-      - run: cargo build --manifest-path src-tauri/Cargo.toml --features tauri/custom-protocol
+      - run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml -- -D warnings
+      - run: cargo build --locked --manifest-path src-tauri/Cargo.toml --features tauri/custom-protocol
       - name: Desktop startup, second launch, quit and restart
         shell: pwsh
         run: ./scripts/windows-phase1.ps1

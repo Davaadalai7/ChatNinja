@@ -23,13 +23,17 @@ For a native binary using bundled frontend assets:
 
 ```powershell
 npm run build
-cargo build --manifest-path src-tauri/Cargo.toml --features tauri/custom-protocol
+cargo build --locked --manifest-path src-tauri/Cargo.toml --features tauri/custom-protocol
 .\src-tauri\target\debug\jutsu.exe
 ```
 
 `npm run desktop:build` builds an unsigned NSIS development installer. Release signing, the tag/release workflow and signed updates are Phase 11; no signing key or updater URL is embedded now.
 
 ## Verify this phase
+
+Native Windows CI passed on commit `b73aee5b960c0fcc91fd9781cf3e436fd9175e47`:
+[run 35621079412](https://github.com/Davaadalai7/ChatNinja/actions/runs/35621079412).
+The native lockfile was retrieved from that successful build. See [verification details](docs/PHASE-1-VERIFICATION.md).
 
 1. Launch the desktop app: the settings window must appear immediately.
 2. Change the language, Save, fully Quit, reopen: the setting must persist.
