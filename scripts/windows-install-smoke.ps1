@@ -105,7 +105,8 @@ public static class ChatNinjaWindows {
 } finally {
     if (-not $app.HasExited) {
         # Process.CloseMainWindow can select the overlay in a two-window app.
-        $null = [ChatNinjaWindows]::CloseDashboard([uint32]$app.Id)
+        $closeSent = [ChatNinjaWindows]::CloseDashboard([uint32]$app.Id)
+        if (-not $closeSent) { Write-Warning "Could not send WM_CLOSE to dashboard. Windows: $([ChatNinjaWindows]::WindowTitles([uint32]$app.Id))" }
         if (-not $app.WaitForExit(10000)) {
             Stop-Process -Id $app.Id -Force
             Write-Warning 'ChatNinja did not exit after dashboard WM_CLOSE.'
@@ -127,7 +128,8 @@ try {
     Write-Output 'PASS: relaunch restores visible overlay and saved position/size.'
 } finally {
     if (-not $reopened.HasExited) {
-        $null = [ChatNinjaWindows]::CloseDashboard([uint32]$reopened.Id)
+        $closeSent = [ChatNinjaWindows]::CloseDashboard([uint32]$reopened.Id)
+        if (-not $closeSent) { Write-Warning "Could not send WM_CLOSE to reopened dashboard. Windows: $([ChatNinjaWindows]::WindowTitles([uint32]$reopened.Id))" }
         if (-not $reopened.WaitForExit(10000)) {
             Stop-Process -Id $reopened.Id -Force
             Write-Warning 'Reopened ChatNinja did not shut down after dashboard WM_CLOSE.'

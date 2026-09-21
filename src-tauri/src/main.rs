@@ -176,13 +176,20 @@ fn control_overlay(
         .always_on_top(true)
         .skip_taskbar(true)
         .shadow(false)
-        .visible(false)
+        // A newly created overlay must be visible from its first native frame.
+        // Showing only after geometry calls could strand a hidden window if an
+        // earlier window-manager operation failed.
+        .visible(action == "show")
         .inner_size(settings.width as f64, settings.height as f64)
         .min_inner_size(160.0, 100.0)
         .max_inner_size(1600.0, 1600.0)
         .build()
         .map_err(|e| e.to_string())?,
     };
+    if action == "show" {
+        window.show().map_err(|e| e.to_string())?;
+        let _ = app.emit_to("main", "overlay-visibility", true);
+    }
     window
         .set_size(tauri::LogicalSize::new(settings.width, settings.height))
         .map_err(|e| e.to_string())?;
@@ -190,10 +197,6 @@ fn control_overlay(
     window
         .set_position(tauri::LogicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
-    if action == "show" {
-        window.show().map_err(|e| e.to_string())?;
-        let _ = app.emit_to("main", "overlay-visibility", true);
-    }
     let _ = window.set_ignore_cursor_events(settings.click_through);
     // Capture exclusion is optional and must not block the overlay from opening.
     let _ = window.set_content_protected(settings.visibility == "streamer");
@@ -367,7 +370,10 @@ fn main() {
             // There is no tray lifecycle yet. Closing the dashboard must also stop
             // the overlay, private OBS server and provider workers.
             if window.label() == "main"
-                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
+                && matches!(
+                    event,
+                    tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
+                )
             {
                 window.app_handle().exit(0);
             }
