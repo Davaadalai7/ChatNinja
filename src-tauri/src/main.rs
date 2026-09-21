@@ -285,7 +285,7 @@ fn main() {
                                     snapshot.settings.click_through = next;
                                     let _ = app.emit_to("main", "overlay-lock", next);
                                 }
-                            }
+                            };
                         }
                     }
                 })
