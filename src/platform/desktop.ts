@@ -26,3 +26,8 @@ export async function getObsUrl(): Promise<string> {
 export async function getStartupWarnings(): Promise<string[]> {
   return invoke("get_startup_warnings");
 }
+export async function getOverlayGeometry(): Promise<
+  Pick<Settings, "x" | "y" | "width" | "height"> | null
+> {
+  return invoke("get_overlay_geometry");
+}

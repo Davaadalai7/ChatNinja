@@ -104,6 +104,23 @@ fn get_startup_warnings(state: tauri::State<AppState>) -> Vec<String> {
 }
 
 #[tauri::command]
+fn get_overlay_geometry(app: tauri::AppHandle) -> Option<serde_json::Value> {
+    let window = app.get_webview_window("overlay")?;
+    if !window.is_visible().ok()? {
+        return None;
+    }
+    let scale = window.scale_factor().ok()?;
+    let position = window.outer_position().ok()?.to_logical::<i32>(scale);
+    let size = window.inner_size().ok()?.to_logical::<u32>(scale);
+    Some(serde_json::json!({
+        "x": position.x,
+        "y": position.y,
+        "width": size.width.clamp(160, 1600),
+        "height": size.height.clamp(100, 1600)
+    }))
+}
+
+#[tauri::command]
 fn set_snapshot(
     app: tauri::AppHandle,
     state: tauri::State<AppState>,
@@ -383,6 +400,7 @@ fn main() {
             set_snapshot,
             get_obs_url,
             get_startup_warnings,
+            get_overlay_geometry,
             control_overlay,
             connections::connection_status,
             connections::connect_provider,

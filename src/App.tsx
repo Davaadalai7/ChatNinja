@@ -16,6 +16,7 @@ import { ChatFeed } from "./features/chat/ChatFeed";
 import {
   controlOverlay,
   getObsUrl,
+  getOverlayGeometry,
   getStartupWarnings,
   native,
   syncSnapshot,
@@ -46,6 +47,7 @@ function Toggle({
 }
 export function App() {
   const bootStarted = useRef(false);
+  const geometryDraft = useRef(false);
   const [settings, setSettings] = useState(loadSettings);
   const [tab, setTab] = useState<Tab>("overlay");
   const [messages, setMessages] = useState<ChatMessage[]>(
@@ -87,6 +89,33 @@ export function App() {
   }, []);
   useEffect(() => {
     if (!native) return;
+    // Some Windows compositors do not deliver native move/resize callbacks to
+    // the webview. Read the actual window bounds as a fallback before shutdown.
+    let reading = false;
+    const timer = setInterval(() => {
+      if (reading || geometryDraft.current) return;
+      reading = true;
+      void getOverlayGeometry()
+        .then((geometry) => {
+          if (!geometry) return;
+          setSettings((previous) =>
+            previous.x === geometry.x &&
+            previous.y === geometry.y &&
+            previous.width === geometry.width &&
+            previous.height === geometry.height
+              ? previous
+              : { ...previous, ...geometry },
+          );
+        })
+        .catch(() => {})
+        .finally(() => {
+          reading = false;
+        });
+    }, 600);
+    return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (!native) return;
     void getStartupWarnings()
       .then((shortcuts) => {
         if (shortcuts.length)
@@ -119,6 +148,7 @@ export function App() {
     };
   }, []);
   function update<K extends keyof Settings>(key: K, value: Settings[K]) {
+    if (["width", "height", "x", "y"].includes(key)) geometryDraft.current = true;
     setSettings((previous) => ({ ...previous, [key]: value }));
   }
   useEffect(() => {
@@ -156,6 +186,7 @@ export function App() {
   async function action(kind: "show" | "hide" | "apply") {
     try {
       await controlOverlay(kind, settings);
+      if (kind !== "hide") geometryDraft.current = false;
       if (kind !== "apply") saveOverlayWanted(kind === "show");
       setError("");
     } catch (error) {
@@ -176,6 +207,7 @@ export function App() {
     try {
       await syncSnapshot({ settings: recovered, messages });
       await controlOverlay("show", recovered);
+      geometryDraft.current = false;
       saveOverlayWanted(true);
       setError("");
     } catch (error) {
