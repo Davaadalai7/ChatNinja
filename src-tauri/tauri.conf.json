@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ChatNinja",
+  "version": "0.1.0",
+  "identifier": "app.chatninja.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "ChatNinja", "width": 1150, "height": 850, "minWidth": 720, "minHeight": 620 }],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://static-cdn.jtvnw.net https://yt3.ggpht.com https://yt3.googleusercontent.com https://files.kick.com https://cdn.7tv.app https://cdn.betterttv.net https://cdn.frankerfacez.com; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    }
+  },
+  "bundle": { "active": true, "targets": ["nsis"], "icon": ["icons/icon.png", "icons/icon.ico"], "shortDescription": "ChatNinja development preview", "windows": { "nsis": { "installMode": "currentUser" } } }
+}

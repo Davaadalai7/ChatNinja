@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https://static-cdn.jtvnw.net https://yt3.ggpht.com https://yt3.googleusercontent.com https://files.kick.com https://cdn.7tv.app https://cdn.betterttv.net https://cdn.frankerfacez.com"><title>ChatNinja OBS</title><style>
+html,body{margin:0;background:transparent;color:#eee;font-family:'Segoe UI',sans-serif}#feed{padding:14px;box-sizing:border-box;max-height:100vh;overflow:hidden}.message{margin-bottom:15px;overflow-wrap:anywhere}.meta{font-size:.7em;color:#ccc;margin-bottom:4px}.body{font-size:.88em;line-height:1.5;white-space:pre-wrap}.emote{height:1.6em;vertical-align:middle}.demo{font-size:10px;letter-spacing:2px;color:#aaa;margin-bottom:12px}
+</style></head><body><div id="feed"></div><script>
+const feed=document.getElementById('feed');
+const allowed=['static-cdn.jtvnw.net','yt3.ggpht.com','yt3.googleusercontent.com','files.kick.com','cdn.7tv.app','cdn.betterttv.net','cdn.frankerfacez.com'];
+function safeUrl(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&allowed.includes(u.hostname)}catch{return false}}
+let previous='';
+async function refresh(){
+ try{
+  const response=await fetch('./state',{cache:'no-store'});if(!response.ok)throw new Error('Disconnected');
+  const data=await response.json();const signature=JSON.stringify(data);if(signature===previous)return;previous=signature;
+  const s=data.settings;feed.replaceChildren();
+  if(s.visibility==='streamer'){feed.style.background='transparent';return;}
+  feed.style.fontSize=s.fontSize+'px';feed.style.background='rgba(14,14,16,'+s.opacity+')';
+  if(s.demo){const label=document.createElement('div');label.className='demo';label.textContent='DEMO · SAMPLE CHAT';feed.append(label)}
+  const bots=new Set(s.botNames.split(',').map(n=>n.trim().toLowerCase()));
+  const messages=data.messages.filter(m=>s.enabledPlatforms.includes(m.platform)&&!(s.hideBots&&bots.has(m.author.toLowerCase()))).slice(-100);
+  for(const m of messages){const row=document.createElement('div');row.className='message';const meta=document.createElement('div');meta.className='meta';meta.textContent=(s.platformLabels?'['+m.platform+'] ':'')+m.author+(m.moderator?' ◇':'')+(s.timestamp?' '+new Date(m.timestamp).toLocaleTimeString(s.language,{hour:'2-digit',minute:'2-digit'}):'');const body=document.createElement('div');body.className='body';for(const f of m.fragments){if(f.type==='emote'&&safeUrl(f.url)){const img=document.createElement('img');img.src=f.url;img.alt=f.name;img.className='emote';img.referrerPolicy='no-referrer';img.onerror=()=>img.replaceWith(document.createTextNode(f.name));body.append(img)}else{body.append(document.createTextNode(f.type==='text'?f.text:f.name))}}row.append(meta,body);feed.append(row)}feed.scrollTop=feed.scrollHeight;
+ }catch{previous='';feed.replaceChildren();feed.style.background='transparent'}finally{setTimeout(refresh,500)}
+}refresh();
+</script></body></html>
