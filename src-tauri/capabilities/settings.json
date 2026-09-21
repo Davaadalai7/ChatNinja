@@ -1,0 +1,1 @@
+{"identifier":"settings","description":"Only the local settings window may read or change non-secret preferences and quit the app.","windows":["settings"],"permissions":["core:default","allow-bootstrap","allow-save-settings","allow-reset-settings","allow-open-logs-folder","allow-quit-app"]}

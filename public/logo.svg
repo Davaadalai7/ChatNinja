@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Jutsu 術">
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="#161c19" stroke="#516257" stroke-width="8"/>
+  <g fill="none" stroke="#e3eee6" stroke-width="24" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M144 115 91 173 M149 202 82 271 M113 245V385"/>
+    <path d="M182 202H309 M244 123V384 M229 220 174 333 M256 232 307 326 M281 135 299 155"/>
+    <path d="M356 142H420 M344 221H431 M397 222V370Q397 387 367 379"/>
+  </g>
+  <path d="M368 440H424" stroke="#a2d4b6" stroke-width="9"/>
+</svg>
