@@ -32,7 +32,7 @@ public static class ChatNinjaWindows {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr window, StringBuilder title, int length);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out Rect bounds);
-    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr window, uint message, IntPtr w, IntPtr l);
+    [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr w, IntPtr l, uint flags, uint timeout, out IntPtr result);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     static IntPtr FindOverlay(uint processId) {
         IntPtr found = IntPtr.Zero;
@@ -64,7 +64,9 @@ public static class ChatNinjaWindows {
             }
             return true;
         }, IntPtr.Zero);
-        return found != IntPtr.Zero && PostMessage(found, 0x0010, IntPtr.Zero, IntPtr.Zero);
+        if (found == IntPtr.Zero) return false;
+        IntPtr result;
+        return SendMessageTimeout(found, 0x0010, IntPtr.Zero, IntPtr.Zero, 2, 1000, out result) != IntPtr.Zero;
     }
     public static string WindowTitles(uint processId) {
         var result = new StringBuilder();
@@ -91,6 +93,11 @@ public static class ChatNinjaWindows {
                Math.Abs(rect.Right - rect.Left - width) <= 12 &&
                Math.Abs(rect.Bottom - rect.Top - height) <= 12;
     }
+    public static string OverlayBounds(uint processId) {
+        var window = FindOverlay(processId);
+        if (window == IntPtr.Zero || !GetWindowRect(window, out Rect rect)) return "unavailable";
+        return $"x={rect.Left} y={rect.Top} width={rect.Right - rect.Left} height={rect.Bottom - rect.Top}";
+    }
 }
 '@
     if (-not [ChatNinjaWindows]::OverlayVisible([uint32]$app.Id)) {
@@ -102,6 +109,10 @@ public static class ChatNinjaWindows {
         throw 'Could not resize or move overlay on the Windows CI runner.'
     }
     Start-Sleep -Seconds 2 # Allow window events to update dashboard storage.
+    Write-Output "Before restart: $([ChatNinjaWindows]::OverlayBounds([uint32]$app.Id))"
+    if (-not [ChatNinjaWindows]::OverlayHasBounds([uint32]$app.Id, 120, 140, 480, 320)) {
+        throw 'Overlay did not hold its requested size and position before restart.'
+    }
 } finally {
     if (-not $app.HasExited) {
         # Process.CloseMainWindow can select the overlay in a two-window app.
@@ -122,6 +133,7 @@ try {
     if (-not [ChatNinjaWindows]::OverlayVisible([uint32]$reopened.Id)) {
         throw "Overlay window was not restored after reopening ChatNinja. Windows: $([ChatNinjaWindows]::WindowTitles([uint32]$reopened.Id))"
     }
+    Write-Output "After restart: $([ChatNinjaWindows]::OverlayBounds([uint32]$reopened.Id))"
     if (-not [ChatNinjaWindows]::OverlayHasBounds([uint32]$reopened.Id, 120, 140, 480, 320)) {
         throw 'Overlay position or size was lost across application restart.'
     }
