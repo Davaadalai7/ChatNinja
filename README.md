@@ -2,7 +2,7 @@
 
 A minimal Windows 10/11 chat overlay for single-monitor streamers. YouTube and Kick are the primary platforms; Twitch is also supported by adapter code. React + TypeScript + Tailwind CSS + Tauri 2.
 
-**0.1.0 development checkpoint. Authentication and live adapters are implemented, but no real-account end-to-end test or Windows installer verification has passed yet. This source ZIP is not an installer.**
+**0.1.0 development build. Windows CI and installer install/startup/shutdown/uninstall checks pass. Authentication and live adapters are implemented, but publisher OAuth configuration, Kick deployment and real-account end-to-end tests remain required. A source ZIP is not an installer.**
 
 ## What is implemented
 
@@ -64,6 +64,7 @@ Capture protection is best-effort: test an actual recording. Exclusive fullscree
 - [Publisher OAuth and relay setup](docs/PROVIDER-SETUP.md)
 - [Kick relay deployment](services/kick-relay/README.md)
 - [Checks actually executed](docs/VERIFICATION.md)
+- [Монгол суулгах заавар](docs/INSTALL-MN.md)
 - [Release checklist](docs/RELEASE-CHECKLIST.md)
 
 Remaining product work includes full emote catalogues, multiple-broadcast selection, stable OBS URLs, tray behavior, configurable shortcuts, performance/game validation and signed releases. No license is asserted; choose one before public distribution.

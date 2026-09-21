@@ -2,7 +2,8 @@
 
 Do not mark an item complete without evidence.
 
-- [ ] Windows CI compiles native code, passes Rust tests and Clippy, produces NSIS installer.
+- [x] Windows CI compiles native code, passes Rust tests and Clippy, produces NSIS installer.
+- [x] Silent install, startup, normal shutdown and uninstall smoke test on Windows CI runner.
 - [x] Include both Cargo.lock files and pin native dependency resolution.
 - [ ] Install/launch/uninstall on clean Windows 10 and Windows 11 machines, including non-admin account and non-ASCII username.
 - [ ] Test WebView2 absent/offline, installer upgrades, rollback and permissions.
