@@ -1,0 +1,39 @@
+name: Jutsu Phase 1
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+            crates/jutsu-config -> target
+      - run: npm ci
+      - run: npm run check
+      - run: cargo test --manifest-path crates/jutsu-config/Cargo.toml
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+      - run: cargo build --manifest-path src-tauri/Cargo.toml --features tauri/custom-protocol
+      - name: Desktop startup, second launch, quit and restart
+        shell: pwsh
+        run: ./scripts/windows-phase1.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Jutsu-phase1-verification
+          path: |
+            src-tauri/Cargo.lock
+            verification.txt
+          if-no-files-found: warn
