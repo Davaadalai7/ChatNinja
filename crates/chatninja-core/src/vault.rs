@@ -45,3 +45,36 @@ pub fn save(_: &Config, _: &Token) -> Result<(), String> {
 pub fn delete(_: &Config) -> Result<(), String> {
     Err("windows_credential_manager_required".into())
 }
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+    use crate::Provider;
+
+    #[test]
+    fn credential_manager_roundtrip_and_logout() {
+        // A unique test-only target; never read or overwrite an actual account.
+        let config = Config {
+            provider: Provider::Twitch,
+            client_id: format!("test-{}-{}", std::process::id(), rand::random::<u64>()),
+            desktop_secret: None,
+        };
+        let token = Token {
+            access_token: "test-access-token".into(),
+            refresh_token: Some("test-refresh-token".into()),
+            expires_at: 123456789,
+        };
+        assert!(load(&config).unwrap().is_none());
+        save(&config, &token).unwrap();
+        let loaded = load(&config);
+        // Clean up before asserting fields, including when the read fails.
+        let deleted = delete(&config);
+        let loaded = loaded.unwrap().unwrap();
+        deleted.unwrap();
+        assert_eq!(loaded.access_token, token.access_token);
+        assert_eq!(loaded.refresh_token, token.refresh_token);
+        assert_eq!(loaded.expires_at, token.expires_at);
+        assert!(load(&config).unwrap().is_none());
+        delete(&config).unwrap(); // Repeated logout is harmless.
+    }
+}

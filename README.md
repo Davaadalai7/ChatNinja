@@ -52,7 +52,7 @@ NSIS output: `src-tauri/target/release/bundle/nsis/`. The included GitHub Action
 
 ## Overlay and OBS
 
-Open the overlay from the dashboard. Alt+Shift+O toggles visibility; Alt+Shift+L toggles click-through. Open the overlay once before using those shortcuts. Drag its header or bottom-right grip when unlocked. Numeric geometry persists; dragged geometry is session-only. The dashboard must remain open; there is no tray lifecycle yet.
+Open the overlay from the dashboard. Alt+Shift+O toggles visibility; Alt+Shift+L toggles click-through. Open the overlay once before using those shortcuts. If another app occupies a shortcut, ChatNinja shows a warning and the dashboard controls remain available. Drag its header or bottom-right grip when unlocked. Numeric geometry persists; dragged geometry is session-only. Closing the dashboard exits the app, overlay and chat workers; there is no tray lifecycle yet.
 
 Choose OBS only or Desktop + OBS and copy the local URL into OBS → Sources → Browser. The server uses loopback, a random port and a random session token. The URL changes each app launch. Streamer-only mode clears OBS messages.
 
@@ -70,4 +70,4 @@ Remaining product work includes full emote catalogues, multiple-broadcast select
 
 ## GitHub
 
-Use a new ChatNinja repository with this folder as its root. Keep credentials, relay data, generated installers, dependency folders and build output out of source control. Repository creation/push and Windows CI have not yet been verified for this checkpoint.
+Source: https://github.com/Davaadalai7/ChatNinja. Keep credentials, relay data, generated installers, dependency folders and build output out of source control. See Actions for exact build results and the verification record for remaining release gates.

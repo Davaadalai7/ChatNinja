@@ -26,7 +26,7 @@ Follow `services/kick-relay/README.md`. Register the app and choose an HTTPS hos
 
 ## GitHub Windows build
 
-The included workflow reads client IDs/relay origin from repository Variables and Google desktop secret from a repository Secret. Kick secret and encryption key belong only to the relay host. Core and frontend tests run before Windows installer packaging. No GitHub repository or CI execution has been created by this handoff.
+The workflow in https://github.com/Davaadalai7/ChatNinja reads client IDs/relay origin from repository Variables and Google desktop secret from a repository Secret. Kick secret and encryption key belong only to the relay host. Core and frontend tests run before Windows installer packaging. Check Actions for exact run results; publisher OAuth configuration is still required.
 
 No provider client IDs have been supplied or invented. Missing configuration disables Connect and explains setup is required. That is intentional and means the current source is **not yet a ready-to-use live release**.
 

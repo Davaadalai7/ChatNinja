@@ -14,6 +14,7 @@ import { ChatFeed } from "./features/chat/ChatFeed";
 import {
   controlOverlay,
   getObsUrl,
+  getStartupWarnings,
   native,
   syncSnapshot,
 } from "./platform/desktop";
@@ -53,6 +54,19 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const t = dictionary[settings.language];
   const displayedMessages = settings.demo ? messages : liveMessages;
+  useEffect(() => {
+    if (!native) return;
+    void getStartupWarnings()
+      .then((shortcuts) => {
+        if (shortcuts.length)
+          setError(
+            settings.language === "mn"
+              ? `Товчлол бүртгэгдсэнгүй: ${shortcuts.join(", ")}. Overlay-г удирдахдаа энэ цонхны товчлууруудыг ашиглана уу.`
+              : `Shortcuts unavailable: ${shortcuts.join(", ")}. Use dashboard controls to show, hide or unlock the overlay.`,
+          );
+      })
+      .catch(() => setError("Startup status unavailable"));
+  }, [settings.language]);
   useEffect(() => {
     if (!native) return;
     let active = true;

@@ -82,6 +82,7 @@ type Shared = Arc<Mutex<Snapshot>>;
 struct AppState {
     snapshot: Shared,
     obs_url: String,
+    startup_warnings: Vec<String>,
 }
 
 #[tauri::command]
@@ -95,6 +96,11 @@ fn get_snapshot(state: tauri::State<AppState>) -> Result<Snapshot, String> {
 #[tauri::command]
 fn get_obs_url(state: tauri::State<AppState>) -> String {
     state.obs_url.clone()
+}
+
+#[tauri::command]
+fn get_startup_warnings(state: tauri::State<AppState>) -> Vec<String> {
+    state.startup_warnings.clone()
 }
 
 #[tauri::command]
@@ -270,9 +276,17 @@ fn main() {
                         response
                     },
                 ));
+            let mut startup_warnings = Vec::new();
+            if app.global_shortcut().register(show).is_err() {
+                startup_warnings.push("Alt+Shift+O".into());
+            }
+            if app.global_shortcut().register(lock).is_err() {
+                startup_warnings.push("Alt+Shift+L".into());
+            }
             app.manage(AppState {
                 snapshot,
                 obs_url: url,
+                startup_warnings,
             });
             tauri::async_runtime::spawn(async move {
                 match tokio::net::TcpListener::from_std(listener) {
@@ -284,14 +298,22 @@ fn main() {
                     Err(error) => eprintln!("OBS server failed: {error}"),
                 }
             });
-            app.global_shortcut().register(show)?;
-            app.global_shortcut().register(lock)?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // There is no tray lifecycle yet. Closing the dashboard must also stop
+            // the overlay, private OBS server and provider workers.
+            if window.label() == "main"
+                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
+            {
+                window.app_handle().exit(0);
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             set_snapshot,
             get_obs_url,
+            get_startup_warnings,
             control_overlay,
             connections::connection_status,
             connections::connect_provider,

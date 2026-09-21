@@ -23,3 +23,6 @@ export async function getSnapshot(): Promise<Snapshot> {
 export async function getObsUrl(): Promise<string> {
   return invoke("get_obs_url");
 }
+export async function getStartupWarnings(): Promise<string[]> {
+  return invoke("get_startup_warnings");
+}
